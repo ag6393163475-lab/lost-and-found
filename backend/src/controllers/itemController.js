@@ -3,8 +3,14 @@ const { getApiError } = require("../utils/apiError");
 
 const createItem = async (req, res) => {
     try {
+        const { title, description, category, location, date, type } = req.body;
         const item = await Item.create({
-            ...req.body,
+            title,
+            description,
+            category,
+            location,
+            date,
+            type,
             reportedBy: req.user.id
         });
         res.status(201).json({ message: "Report created", item });
@@ -29,9 +35,12 @@ const getItem = async (req, res) => {
         const item = await Item.findById(req.params.id);
         if (!item) return res.status(404).json({ message: "Report not found" });
 
+        // ownership check populate se PEHLE - populate ke baad reportedBy pura
+        // object ho jata hai aur uska toString() user id se match karna band kar deta hai
         if (item.reportedBy.toString() !== req.user.id && req.user.role !== "admin")
             return res.status(403).json({ message: "You can only view your own reports" });
 
+        await item.populate("reportedBy", "name email");
         res.json({ item });
     } catch (error) {
         const { status, message } = getApiError(error);
